@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      :root {
+        --blue: #2563eb;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+      }
+      body {
+        width: 320px;
+        margin: 0;
+        font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+          'Microsoft YaHei', sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(600px 200px at 100% -20%, #dbeafe 0%, transparent 70%),
+          #ffffff;
+      }
+      .wrap {
+        padding: 18px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      h1 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+      }
+      .hint {
+        margin: 0;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .card {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #475569;
+      }
+      input {
+        width: 100%;
+        margin-bottom: 12px;
+        padding: 9px 11px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #f8fafc;
+        color: var(--ink);
+        font: inherit;
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      }
+      input:focus {
+        background: #fff;
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+      }
+      #roomId {
+        text-align: center;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 6px;
+      }
+      button {
+        width: 100%;
+        padding: 11px;
+        border: 0;
+        border-radius: 9px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+        color: #fff;
+        font: inherit;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.08s, filter 0.15s;
+      }
+      button:hover {
+        filter: brightness(1.06);
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+      #status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 18px;
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      #status::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.85;
+      }
+      #status:empty::before {
+        display: none;
+      }
+      #status.ok {
+        color: #059669;
+      }
+      #status.error {
+        color: #dc2626;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="logo">C</div>
+        <div>
+          <h1 data-i18n="extName">ClipSync</h1>
+          <p class="hint" data-i18n="popupHint">Use the same URL and code as the mobile page</p>
+        </div>
+      </header>
+
+      <section class="card">
+        <label for="workerUrl" data-i18n="workerLabel">Worker URL</label>
+        <input
+          id="workerUrl"
+          type="url"
+          placeholder="https://<your-worker-subdomain>.workers.dev"
+          spellcheck="false"
+          autocapitalize="off"
+          autocomplete="off"
+        />
+
+        <label for="roomId" data-i18n="roomLabel">Pairing code</label>
+        <input id="roomId" type="text" inputmode="numeric" maxlength="4" placeholder="0000" />
+
+        <button id="save" data-i18n="saveBtn">Save &amp; Connect</button>
+        <div id="status" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

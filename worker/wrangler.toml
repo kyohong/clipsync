@@ -1,0 +1,12 @@
+name = "clipsync-relay"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[durable_objects]
+bindings = [
+  { name = "CLIP_ROOM", class_name = "ClipRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ClipRoom"]

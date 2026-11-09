@@ -1,0 +1,44 @@
+{
+  "extName": {
+    "message": "ClipSync"
+  },
+  "extDesc": {
+    "message": "手机复制，电脑直接粘贴。跨端实时剪贴板同步。"
+  },
+  "popupHint": {
+    "message": "与手机端填写同一地址和配对码"
+  },
+  "workerLabel": {
+    "message": "Worker 地址"
+  },
+  "roomLabel": {
+    "message": "配对码"
+  },
+  "saveBtn": {
+    "message": "保存并连接"
+  },
+  "statusConnected": {
+    "message": "已连接，可以开始同步"
+  },
+  "statusSaved": {
+    "message": "已保存，正在连接…"
+  },
+  "statusEmptyError": {
+    "message": "请填写 Worker 地址和 4 位配对码"
+  },
+  "notifTitle": {
+    "message": "ClipSync · 已同步"
+  },
+  "notifPrefix": {
+    "message": "已同步至剪贴板，直接粘贴："
+  },
+  "notifFailedTitle": {
+    "message": "ClipSync · 同步失败"
+  },
+  "notifFailedPrefix": {
+    "message": "剪贴板写入失败，请重新发送。"
+  },
+  "statusDisconnected": {
+    "message": "未连接，正在重试…"
+  }
+}

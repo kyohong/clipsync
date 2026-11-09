@@ -1,0 +1,44 @@
+{
+  "extName": {
+    "message": "ClipSync"
+  },
+  "extDesc": {
+    "message": "Copy on your phone, paste on your desktop. Real-time cross-device clipboard sync."
+  },
+  "popupHint": {
+    "message": "Use the same URL and code as the mobile page"
+  },
+  "workerLabel": {
+    "message": "Worker URL"
+  },
+  "roomLabel": {
+    "message": "Pairing code"
+  },
+  "saveBtn": {
+    "message": "Save & Connect"
+  },
+  "statusConnected": {
+    "message": "Connected — ready to sync"
+  },
+  "statusSaved": {
+    "message": "Saved — connecting…"
+  },
+  "statusEmptyError": {
+    "message": "Enter the Worker URL and a 4-digit pairing code"
+  },
+  "notifTitle": {
+    "message": "ClipSync · Synced"
+  },
+  "notifPrefix": {
+    "message": "Copied to your clipboard — press Ctrl+V: "
+  },
+  "notifFailedTitle": {
+    "message": "ClipSync · Sync failed"
+  },
+  "notifFailedPrefix": {
+    "message": "Couldn't write to the clipboard. Try sending again."
+  },
+  "statusDisconnected": {
+    "message": "Disconnected — retrying…"
+  }
+}

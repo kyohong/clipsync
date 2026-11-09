@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ClipSync - Cross-Device Clipboard</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 20px 16px;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 540px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .header p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .header-actions { display: flex; gap: 8px; }
+    .action-btn {
+      border: 1px solid var(--border);
+      background: #f1f5f9;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background-color 0.2s;
+    }
+    .action-btn:hover { background: #e2e8f0; }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+    input, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus { border-color: var(--primary); }
+    .row { display: flex; gap: 10px; }
+    .row .input-group:first-child { flex: 2; }
+    .row .input-group:last-child { flex: 1; }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background-color 0.15s, transform 0.05s;
+    }
+    .btn:active { transform: scale(0.99); }
+    .btn-primary { background: var(--primary); color: #fff; margin-top: 12px; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); margin-top: 8px; }
+    .btn-copy { background: #f1f5f9; border: 1px solid var(--border); padding: 6px 12px; font-size: 12px; width: auto; }
+    .btn-copy:hover { background: #e2e8f0; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      color: var(--text-muted);
+      width: fit-content;
+      margin-top: 12px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+    .status-badge.connected .status-dot { background: var(--success); }
+    .status-badge.connected { background: #dcfce7; color: var(--success); }
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .msg-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+    .msg-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .msg-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .msg-content {
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: #ffffff;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #edf2f7;
+      max-height: 120px;
+      overflow-y: auto;
+      font-family: monospace;
+    }
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 24px 0;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 1000;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .modal-header h2 { font-size: 18px; font-weight: 700; }
+    .close-btn {
+      background: none; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer;
+    }
+    .guide-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .guide-section h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      border-left: 3px solid var(--primary);
+      padding-left: 8px;
+    }
+    .guide-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .guide-item strong { color: var(--text); }
+    .code-block {
+      background: #f1f5f9;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #334155;
+      margin-top: 6px;
+      word-break: break-all;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.9);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 1100;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <div class="header">
+      <div>
+        <h1 id="ui-title">ClipSync</h1>
+        <p id="ui-subtitle">双向剪贴板：手机与电脑实时互传</p>
+      </div>
+      <div class="header-actions">
+        <button class="action-btn" id="guide-btn">📖 <span id="ui-guide-btn-text">使用指南</span></button>
+        <button class="action-btn" id="lang-btn">EN</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="input-group">
+        <label id="lbl-worker" for="worker-url">Worker 地址</label>
+        <input type="url" id="worker-url" placeholder="https://<your-worker-subdomain>.workers.dev">
+      </div>
+      <div class="input-group">
+        <label id="lbl-room" for="room-id">配对码 (Room)</label>
+        <input type="text" id="room-id" placeholder="0000" maxlength="4" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="status-badge" id="sse-status">
+      <span class="status-dot"></span>
+      <span id="sse-status-text">未连接接收信道</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      <span id="ui-recv-title">实时接收记录 (实时滚动)</span>
+      <button class="btn btn-copy" id="btn-clear" style="margin:0;">清空</button>
+    </div>
+    <div class="msg-list" id="msg-container">
+      <div class="empty-state" id="empty-hint">等待设备投送文本... 手机发送后将在此处实时弹出</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      <span id="ui-send-title">发送至云端</span>
+    </div>
+
+    <button class="btn btn-primary" id="btn-paste-send">
+      <span id="ui-btn-quick-send">一键读取本机剪贴板并发送</span>
+    </button>
+
+    <div class="input-group" style="margin-top: 14px;">
+      <label id="lbl-manual" for="manual-text">备用手动输入区</label>
+      <textarea id="manual-text" rows="3" placeholder="在此粘贴长文本或代码..."></textarea>
+      <button class="btn btn-outline" id="btn-manual-send">发送输入框文本</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="guide-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2 id="modal-title">📖 使用指南</h2>
+      <button class="close-btn" id="modal-close" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="guide-section">
+      <h3 id="g-recv-title">💻 电脑端：如何接收</h3>
+      <div class="guide-item">
+        <strong id="g-recv-opt1-t">主力电脑（极致无感）</strong>
+        <p id="g-recv-opt1-d">安装 Chrome 扩展并配置好相同 Worker 与配对码。手机无论何时敲击发送，电脑任意软件中直接按 <b>Ctrl+V</b>（Mac 按 <b>Cmd+V</b>）即可贴出内容，无需切换窗口。</p>
+      </div>
+      <div class="guide-item">
+        <strong id="g-recv-opt2-t">临时设备（免插件纯网页）</strong>
+        <p id="g-recv-opt2-d">受限或公用电脑直接打开本网页并保持在线。手机投送后，本页「实时接收记录」卡片会毫秒级跳出，点击卡片右上角的<b>【一键复制】</b>即可。</p>
+      </div>
+    </div>
+
+    <div class="guide-section">
+      <h3 id="g-send-title">📱 手机端：如何发送</h3>
+      <div class="guide-item">
+        <strong id="g-send-opt1-t">方式 A：通用网页直接发（免配置）</strong>
+        <p id="g-send-opt1-d">任何手机浏览器打开本页，点击“一键读取本机剪贴板并发送”大按钮（或手动粘贴），即可秒级推送到所有已配对设备。</p>
+      </div>
+      <div class="guide-item">
+        <strong id="g-send-opt2-t">方式 B：iPhone 极致体验（轻点背面）</strong>
+        <p id="g-send-opt2-d">iOS 打开「快捷指令」App ➔ 新建指令 ➔ 添加「获取剪贴板」➔ 添加「获取 URL 的内容」：</p>
+        <div class="code-block" id="g-send-opt2-code">POST: https://你的Worker地址/send?room=配对码<br>Body: JSON { "text": 剪贴板 }</div>
+        <p style="margin-top:4px;" id="g-send-opt2-d2">前往 iPhone 设置 ➔ 辅助功能 ➔ 触控 ➔ 轻点背面 ➔ 绑定此指令，敲击两下即刻发送。</p>
+      </div>
+      <div class="guide-item">
+        <strong id="g-send-opt3-t">方式 C：Android 安卓手机快捷发送</strong>
+        <p id="g-send-opt3-d">1. 浏览器打开本页，点击菜单选择<b>「添加到主屏幕」</b>，形成原生 App 体验。<br>2. 推荐配合免费开源 App<b>「HTTP Shortcuts」</b>：配置 POST 接口读取系统变量 <code>{clipboard}</code>，并将其添加至顶部下拉通知栏的控制中心磁贴（Quick Settings Tile），长按复制后下拉一点即发。</p>
+      </div>
+    </div>
+
+    <div class="guide-section">
+      <h3 id="g-infra-title">🌐 网络优化与自建说明</h3>
+      <p id="g-infra-desc">数据基于 Cloudflare 边缘内存节点中转，零持久化存储。<br><b>中国大陆用户提示：</b>如遇 <code>workers.dev</code> 域名访问阻断，建议在 Cloudflare 仪表盘为该 Worker 绑定<b>自定义独立域名 (Custom Domain)</b> 即可流畅使用。</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const I18N = {
+    zh: {
+      title: "ClipSync",
+      subtitle: "双向剪贴板：手机与电脑实时互传",
+      guideBtn: "使用指南",
+      lblWorker: "Worker 地址",
+      lblRoom: "配对码 (Room)",
+      lblManual: "备用手动输入区",
+      placeholderManual: "在此粘贴长文本或代码...",
+      btnQuickSend: "一键读取本机剪贴板并发送",
+      btnManualSend: "发送输入框文本",
+      recvTitle: "实时接收记录 (实时滚动)",
+      sendTitle: "发送至云端",
+      emptyHint: "等待设备投送文本... 手机发送后将在此处实时弹出",
+      statusConnected: "实时监听中 (准备就绪)",
+      statusDisconnected: "未连接接收信道",
+      statusConnecting: "正在连接信道...",
+      btnClear: "清空",
+      btnCopy: "一键复制",
+      copied: "✓ 已复制到系统剪贴板",
+      copyFail: "复制失败，请手动选择文字",
+      sendSuccess: "✓ 投送成功！",
+      sendFail: "投送失败，请检查配置",
+      emptyWarn: "发送内容不能为空",
+      clipDenied: "浏览器拒绝访问剪贴板，请使用下方手动输入框",
+      modalTitle: "📖 使用指南",
+      gRecvTitle: "💻 电脑端：如何接收",
+      gRecvOpt1T: "主力电脑（极致无感）",
+      gRecvOpt1D: "安装 Chrome 扩展并配置好相同 Worker 与配对码。手机无论何时敲击发送，电脑任意软件中直接按 <b>Ctrl+V</b>（Mac 按 <b>Cmd+V</b>）即可贴出内容，无需切换窗口。",
+      gRecvOpt2T: "临时设备（免插件纯网页）",
+      gRecvOpt2D: "受限或公用电脑直接打开本网页并保持在线。手机投送后，本页「实时接收记录」卡片会毫秒级跳出，点击卡片右上角的<b>【一键复制】</b>即可。",
+      gSendTitle: "📱 手机端：如何发送",
+      gSendOpt1T: "方式 A：通用网页直接发（免配置）",
+      gSendOpt1D: "任何手机浏览器打开本页，点击“一键读取本机剪贴板并发送”大按钮（或手动粘贴），即可秒级推送到所有已配对设备。",
+      gSendOpt2T: "方式 B：iPhone 极致体验（轻点背面）",
+      gSendOpt2D: "iOS 打开「快捷指令」App ➔ 新建指令 ➔ 添加「获取剪贴板」➔ 添加「获取 URL 的内容」：",
+      gSendOpt2Code: "POST: https://你的Worker地址/send?room=配对码<br>Body: JSON { \"text\": 剪贴板 }",
+      gSendOpt2D2: "前往 iPhone 设置 ➔ 辅助功能 ➔ 触控 ➔ 轻点背面 ➔ 绑定此指令，敲击两下即刻发送。",
+      gSendOpt3T: "方式 C：Android 安卓手机快捷发送",
+      gSendOpt3D: "1. 浏览器打开本页，点击菜单选择<b>「添加到主屏幕」</b>，形成原生 App 体验。<br>2. 推荐配合免费开源 App<b>「HTTP Shortcuts」</b>：配置 POST 接口读取系统变量 <code>{clipboard}</code>，并将其添加至顶部下拉通知栏的控制中心磁贴（Quick Settings Tile），长按复制后下拉一点即发。",
+      gInfraTitle: "🌐 网络优化与自建说明",
+      gInfraDesc: "数据基于 Cloudflare 边缘内存节点中转，零持久化存储。<br><b>中国大陆用户提示：</b>如遇 <code>workers.dev</code> 域名访问阻断，建议在 Cloudflare 仪表盘为该 Worker 绑定<b>自定义独立域名 (Custom Domain)</b> 即可流畅使用。"
+    },
+    en: {
+      title: "ClipSync",
+      subtitle: "Bidirectional sync: Send & receive across all devices",
+      guideBtn: "Guide",
+      lblWorker: "Worker URL",
+      lblRoom: "Pairing Code (Room)",
+      lblManual: "Manual Fallback Textarea",
+      placeholderManual: "Paste long text or code snippet here...",
+      btnQuickSend: "Read Clipboard & Send",
+      btnManualSend: "Send Textarea Content",
+      recvTitle: "Real-time Live Feed",
+      sendTitle: "Broadcast to Devices",
+      emptyHint: "Waiting for incoming texts... Real-time messages will appear here",
+      statusConnected: "Listening for messages (Live)",
+      statusDisconnected: "Receiver disconnected",
+      statusConnecting: "Connecting to stream...",
+      btnClear: "Clear",
+      btnCopy: "Copy",
+      copied: "✓ Copied to clipboard",
+      copyFail: "Copy failed — select the text manually",
+      sendSuccess: "✓ Sent successfully!",
+      sendFail: "Failed to send, check configuration",
+      emptyWarn: "Message text cannot be empty",
+      clipDenied: "Clipboard read access denied. Please paste below manually.",
+      modalTitle: "📖 Usage Guide",
+      gRecvTitle: "💻 PC: How to Receive",
+      gRecvOpt1T: "Primary PC (Seamless Ctrl+V)",
+      gRecvOpt1D: "Install the Chrome Extension with matching credentials. Phone tap-to-send, then simply press <b>Ctrl+V</b> (Mac: <b>Cmd+V</b>) in any app on PC without switching tabs.",
+      gRecvOpt2T: "Guest / Unmanaged PC (No Extension)",
+      gRecvOpt2D: "Open this webpage on any guest computer. When phone sends, cards pop up instantly below. Click <b>【Copy】</b> to use.",
+      gSendTitle: "📱 Mobile: How to Send",
+      gSendOpt1T: "Method A: Web Client (Zero Setup)",
+      gSendOpt1D: "Open this webpage on any phone, tap 'Read Clipboard & Send' (or paste into box) to broadcast instantly.",
+      gSendOpt2T: "Method B: iPhone Back Tap Trigger",
+      gSendOpt2D: "Open Shortcuts App ➔ New ➔ 'Get Clipboard' ➔ 'Get Contents of URL':",
+      gSendOpt2Code: "POST: https://your-worker/send?room=room_code<br>Body: JSON { \"text\": Clipboard }",
+      gSendOpt2D2: "Go to Settings ➔ Accessibility ➔ Touch ➔ Back Tap, assign this shortcut.",
+      gSendOpt3T: "Method C: Android Quick Broadcast",
+      gSendOpt3D: "1. Open in browser and select <b>'Add to Home Screen'</b> for PWA experience.<br>2. Or use the open-source app <b>'HTTP Shortcuts'</b>: map a POST request to <code>{clipboard}</code> and add it to your Quick Settings notification tile.",
+      gInfraTitle: "🌐 Network & Self-Hosting",
+      gInfraDesc: "Powered by Cloudflare in-memory relay. Zero persistent logging.<br><b>Note for Mainland China:</b> If <code>workers.dev</code> is throttled, bind a <b>Custom Domain</b> to your Worker in the Cloudflare Dashboard for low latency."
+    }
+  };
+
+  let currentLang = localStorage.getItem('clipsync_lang') || ((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en');
+  let eventSource = null;
+
+  const elWorker = document.getElementById('worker-url');
+  const elRoom = document.getElementById('room-id');
+  const elManual = document.getElementById('manual-text');
+  const elMsgContainer = document.getElementById('msg-container');
+  const elStatusBadge = document.getElementById('sse-status');
+  const elStatusText = document.getElementById('sse-status-text');
+  const elToast = document.getElementById('toast');
+  const elLangBtn = document.getElementById('lang-btn');
+  const elGuideBtn = document.getElementById('guide-btn');
+  const elGuideModal = document.getElementById('guide-modal');
+  const elModalClose = document.getElementById('modal-close');
+
+  elWorker.value = localStorage.getItem('clipsync_worker') || '';
+  elRoom.value = localStorage.getItem('clipsync_room') || '';
+
+  function showToast(msg) {
+    elToast.textContent = msg;
+    elToast.classList.add('show');
+    setTimeout(() => elToast.classList.remove('show'), 2000);
+  }
+
+  function applyLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('clipsync_lang', lang);
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    elLangBtn.textContent = lang === 'zh' ? 'EN' : '中';
+    const dict = I18N[lang];
+
+    document.getElementById('ui-title').textContent = dict.title;
+    document.getElementById('ui-subtitle').textContent = dict.subtitle;
+    document.getElementById('ui-guide-btn-text').textContent = dict.guideBtn;
+    document.getElementById('lbl-worker').textContent = dict.lblWorker;
+    document.getElementById('lbl-room').textContent = dict.lblRoom;
+    document.getElementById('lbl-manual').textContent = dict.lblManual;
+    document.getElementById('ui-recv-title').textContent = dict.recvTitle;
+    document.getElementById('ui-send-title').textContent = dict.sendTitle;
+    document.getElementById('ui-btn-quick-send').textContent = dict.btnQuickSend;
+    document.getElementById('btn-manual-send').textContent = dict.btnManualSend;
+    document.getElementById('btn-clear').textContent = dict.btnClear;
+    elManual.placeholder = dict.placeholderManual;
+
+    document.getElementById('modal-title').textContent = dict.modalTitle;
+    document.getElementById('g-recv-title').textContent = dict.gRecvTitle;
+    document.getElementById('g-recv-opt1-t').textContent = dict.gRecvOpt1T;
+    document.getElementById('g-recv-opt1-d').innerHTML = dict.gRecvOpt1D;
+    document.getElementById('g-recv-opt2-t').textContent = dict.gRecvOpt2T;
+    document.getElementById('g-recv-opt2-d').innerHTML = dict.gRecvOpt2D;
+    document.getElementById('g-send-title').textContent = dict.gSendTitle;
+    document.getElementById('g-send-opt1-t').textContent = dict.gSendOpt1T;
+    document.getElementById('g-send-opt1-d').innerHTML = dict.gSendOpt1D;
+    document.getElementById('g-send-opt2-t').textContent = dict.gSendOpt2T;
+    document.getElementById('g-send-opt2-d').textContent = dict.gSendOpt2D;
+    document.getElementById('g-send-opt2-code').innerHTML = dict.gSendOpt2Code;
+    document.getElementById('g-send-opt2-d2').textContent = dict.gSendOpt2D2;
+    document.getElementById('g-send-opt3-t').textContent = dict.gSendOpt3T;
+    document.getElementById('g-send-opt3-d').innerHTML = dict.gSendOpt3D;
+    document.getElementById('g-infra-title').textContent = dict.gInfraTitle;
+    document.getElementById('g-infra-desc').innerHTML = dict.gInfraDesc;
+
+    const hint = document.getElementById('empty-hint');
+    if (hint) hint.textContent = dict.emptyHint;
+    updateStatusUI();
+  }
+
+  function updateStatusUI() {
+    const dict = I18N[currentLang];
+    if (eventSource && eventSource.readyState === EventSource.OPEN) {
+      elStatusBadge.className = 'status-badge connected';
+      elStatusText.textContent = dict.statusConnected;
+    } else if (eventSource && eventSource.readyState === EventSource.CONNECTING) {
+      elStatusBadge.className = 'status-badge';
+      elStatusText.textContent = dict.statusConnecting;
+    } else {
+      elStatusBadge.className = 'status-badge';
+      elStatusText.textContent = dict.statusDisconnected;
+    }
+  }
+
+  function readTarget() {
+    const workerUrl = elWorker.value.trim().replace(/\/+$/, '');
+    const room = elRoom.value.trim();
+    if (!/^https?:\/\/.+/i.test(workerUrl)) return null;
+    if (!/^\d{4}$/.test(room)) return null;
+    return { workerUrl, room };
+  }
+
+  function initSSE() {
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+
+    const target = readTarget();
+    if (!target) {
+      updateStatusUI();
+      return;
+    }
+
+    const { workerUrl, room } = target;
+    localStorage.setItem('clipsync_worker', workerUrl);
+    localStorage.setItem('clipsync_room', room);
+
+    try {
+      eventSource = new EventSource(`${workerUrl}/events?room=${encodeURIComponent(room)}`);
+
+      eventSource.onopen = () => updateStatusUI();
+      eventSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data && data.text) renderIncomingMessage(data.text);
+        } catch (err) {
+          console.error('[ClipSync] 解析数据异常:', err);
+        }
+      };
+      eventSource.onerror = () => updateStatusUI();
+    } catch (e) {
+      console.error('[ClipSync] 连接失败:', e);
+      updateStatusUI();
+    }
+    updateStatusUI();
+  }
+
+  function renderIncomingMessage(text) {
+    const hint = document.getElementById('empty-hint');
+    if (hint) hint.remove();
+
+    const dict = I18N[currentLang];
+    const card = document.createElement('div');
+    card.className = 'msg-item';
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+    const header = document.createElement('div');
+    header.className = 'msg-header';
+
+    const timeSpan = document.createElement('span');
+    timeSpan.textContent = `⚡ ${timeStr}`;
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'btn btn-copy';
+    copyBtn.textContent = dict.btnCopy;
+
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = dict.copied;
+        showToast(dict.copied);
+        setTimeout(() => { copyBtn.textContent = I18N[currentLang].btnCopy; }, 1500);
+      } catch (err) {
+        showToast(I18N[currentLang].copyFail);
+      }
+    };
+
+    header.appendChild(timeSpan);
+    header.appendChild(copyBtn);
+
+    const body = document.createElement('div');
+    body.className = 'msg-content';
+    body.textContent = text;
+
+    card.appendChild(header);
+    card.appendChild(body);
+    elMsgContainer.prepend(card);
+  }
+
+  async function sendPayload(text) {
+    const dict = I18N[currentLang];
+    if (!text || !text.trim()) {
+      showToast(dict.emptyWarn);
+      return;
+    }
+
+    const target = readTarget();
+    if (!target) {
+      showToast(dict.sendFail);
+      return;
+    }
+
+    const { workerUrl, room } = target;
+    localStorage.setItem('clipsync_worker', workerUrl);
+    localStorage.setItem('clipsync_room', room);
+
+    try {
+      const res = await fetch(`${workerUrl}/send?room=${encodeURIComponent(room)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+      });
+
+      showToast(res.ok ? dict.sendSuccess : dict.sendFail);
+    } catch (e) {
+      showToast(dict.sendFail);
+    }
+  }
+
+  elGuideBtn.onclick = () => elGuideModal.classList.add('active');
+  elModalClose.onclick = () => elGuideModal.classList.remove('active');
+  elGuideModal.onclick = (e) => {
+    if (e.target === elGuideModal) elGuideModal.classList.remove('active');
+  };
+
+  elLangBtn.onclick = () => applyLanguage(currentLang === 'zh' ? 'en' : 'zh');
+  elWorker.onchange = initSSE;
+  elRoom.onchange = initSSE;
+
+  document.getElementById('btn-clear').onclick = () => {
+    const hint = document.createElement('div');
+    hint.className = 'empty-state';
+    hint.id = 'empty-hint';
+    hint.textContent = I18N[currentLang].emptyHint;
+    elMsgContainer.replaceChildren(hint);
+  };
+
+  document.getElementById('btn-paste-send').onclick = async () => {
+    const dict = I18N[currentLang];
+    if (!readTarget()) {
+      showToast(dict.sendFail);
+      return;
+    }
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text || !text.trim()) {
+        showToast(dict.emptyWarn);
+        return;
+      }
+      sendPayload(text);
+    } catch (err) {
+      showToast(dict.clipDenied);
+      elManual.focus();
+    }
+  };
+
+  document.getElementById('btn-manual-send').onclick = () => {
+    const text = elManual.value;
+    sendPayload(text);
+    elManual.value = '';
+  };
+
+  applyLanguage(currentLang);
+  initSSE();
+</script>
+</body>
+</html>
