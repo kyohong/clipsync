@@ -411,6 +411,84 @@
     }
     .toast.show { opacity: 1; }
 
+    .mode-switch {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #eef2f7;
+    }
+    .mode-switch button {
+      flex: 1;
+      padding: 9px 12px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .mode-switch button.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+    }
+    .chat-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .chat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: var(--success);
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .chat-badge .status-dot { background: var(--success); }
+    .chat-badge.offline { background: #f1f5f9; color: var(--text-muted); }
+    .chat-badge.offline .status-dot { background: #94a3b8; }
+    #chat-exit { width: auto; margin: 0; padding: 6px 12px; font-size: 12px; }
+    .chat-actions { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .chat-actions .btn { width: auto; flex: 1; min-width: 150px; margin-top: 0; font-size: 13px; }
+    .btn-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fecaca; }
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding: 4px 2px;
+    }
+    .chat-row { display: flex; }
+    .chat-row.mine { justify-content: flex-end; }
+    .chat-bubble {
+      max-width: 82%;
+      padding: 9px 12px;
+      border-radius: 14px;
+      background: #f1f5f9;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .chat-row.mine .chat-bubble { background: var(--primary); color: #fff; }
+    .chat-text { white-space: pre-wrap; }
+    .chat-image { display: block; max-width: 100%; max-height: 220px; border-radius: 10px; cursor: zoom-in; background: #fff; }
+    .chat-meta { font-size: 11px; opacity: 0.75; margin-top: 6px; word-break: break-all; }
+    .chat-bubble .msg-download { margin-top: 8px; }
+    .chat-composer { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; }
+    .chat-composer textarea { flex: 1; min-height: 44px; max-height: 120px; resize: vertical; }
+    .chat-composer .file-btn { width: 44px; min-width: 44px; height: 44px; font-size: 18px; }
+    .chat-composer .btn { width: auto; min-width: 72px; height: 44px; margin: 0; }
+    .compliance { text-align: center; font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+
     @media (max-width: 480px) {
       input, textarea { font-size: 16px; }
       #room-id { font-size: 16px; }
@@ -467,6 +545,12 @@
     </div>
   </div>
 
+  <div class="mode-switch" role="tablist" aria-label="Mode">
+    <button id="mode-clipboard" class="active" role="tab" aria-selected="true" data-i18n="modeClipboard">📋 剪贴板模式</button>
+    <button id="mode-chat" role="tab" aria-selected="false" data-i18n="modeChat">💬 临时对聊</button>
+  </div>
+
+  <div id="clipboard-view">
   <div class="card">
     <div class="section-title">
       <span id="ui-recv-title" data-i18n="recvTitle">实时接收记录 (实时滚动)</span>
@@ -500,6 +584,45 @@
       </button>
     </div>
   </div>
+  </div>
+
+  <div id="chat-view" hidden>
+    <div class="card" id="chat-lobby">
+      <div class="section-title">
+        <span data-i18n="chatLobbyTitle">💬 临时对聊</span>
+      </div>
+      <p class="field-hint" data-i18n="chatLobbyDesc">创建一个一次性房间，邀请对方即时对话；随时可销毁，消息不落库。</p>
+      <button class="btn btn-primary" id="chat-create" data-i18n="chatCreate">创建对聊房间</button>
+    </div>
+
+    <div class="card" id="chat-room" hidden>
+      <div class="chat-head">
+        <div class="chat-badge" id="chat-badge">
+          <span class="status-dot"></span>
+          <span id="chat-status">临时对聊</span>
+        </div>
+        <button class="btn btn-outline" id="chat-exit" data-i18n="chatExit">退出房间</button>
+      </div>
+
+      <div class="chat-actions" id="chat-host-actions" hidden>
+        <button class="btn btn-outline" id="chat-invite" data-i18n="chatInvite">🔗 复制专属邀请链接</button>
+        <button class="btn btn-danger" id="chat-destroy" data-i18n="chatDestroy">🔥 销毁会话</button>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="empty-state" id="chat-empty" data-i18n="chatEmpty">暂无消息，开始聊天吧</div>
+      </div>
+
+      <div class="chat-composer">
+        <textarea id="chat-input" rows="2" data-i18n-placeholder="chatInputPlaceholder" placeholder="输入消息，支持粘贴截图…"></textarea>
+        <button class="file-btn" id="chat-attach" title="添加图片或文件" aria-label="添加图片或文件">📎</button>
+        <button class="btn btn-primary" id="chat-send" data-i18n="chatSend">发送</button>
+      </div>
+      <input type="file" id="chat-file" hidden accept="image/*,.txt,.md,.json,.csv,.log,.pdf,.zip">
+    </div>
+  </div>
+
+  <p class="compliance" id="compliance-note" data-i18n="compliance">纯静态客户端 | 零云端持久化 | 数据仅通过用户自建中继流转</p>
 </div>
 
 <div class="modal-overlay" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
@@ -583,6 +706,12 @@
   // Set this to your public relay URL to make the hosted web console work out of the box.
   const DEFAULT_WORKER_URL = '';
   const MAX_FILE_SIZE = 8 * 1024 * 1024;
+  const CHAT_KEYS = {
+    host: 'clipsync_chat_host',
+    guest: 'clipsync_chat_guest',
+    mode: 'clipsync_view_mode'
+  };
+  const TOKEN_RE = /^tk_[A-Za-z0-9_-]{8,64}$/;
 
   const LS = {
     lang: 'clipsync_lang',
@@ -617,6 +746,32 @@
       viewImage: "点击查看大图",
       downloadStarted: "下载已开始",
       readFailed: "文件读取失败，请重试",
+      modeClipboard: "📋 剪贴板模式",
+      modeChat: "💬 临时对聊",
+      chatLobbyTitle: "💬 临时对聊",
+      chatLobbyDesc: "创建一个一次性房间，邀请对方即时对话；随时可销毁，消息不落库。",
+      chatCreate: "创建对聊房间",
+      chatExit: "退出房间",
+      chatInvite: "🔗 复制专属邀请链接",
+      chatDestroy: "🔥 销毁会话",
+      chatConfirmDestroy: "销毁后所有消息将立即清除且无法恢复，确定继续？",
+      chatInputPlaceholder: "输入消息，支持粘贴截图…",
+      chatSend: "发送",
+      chatAttach: "添加图片或文件",
+      chatEmpty: "暂无消息，开始聊天吧",
+      chatConnected: "已连接",
+      chatConnecting: "连接中…",
+      chatGuestBadge: "已加入临时中继会话",
+      chatRoomLabel: "房间",
+      chatInviteCopied: "邀请链接已复制，Hash 直连不会经过服务器日志",
+      chatSessionDestroyed: "会话已销毁，聊天记录已清空",
+      chatExitToast: "已退出临时会话",
+      chatOpenFailed: "创建房间失败，请重试",
+      chatRoomUnavailable: "房间已被占用，请重试",
+      chatConnectFailed: "加入会话失败，链接可能已失效",
+      chatInvalidInvite: "邀请链接无效或已过期",
+      chatNeedRoom: "请先创建或加入一个对聊房间",
+      compliance: "纯静态客户端 | 零云端持久化 | 数据仅通过用户自建中继流转",
       settingsTitle: "⚙️ 设置",
       workerLabel: "Worker API 地址",
       workerHint: "支持配置私有化 Worker 节点；留空则使用默认节点。",
@@ -699,6 +854,32 @@
       viewImage: "Click to view full size",
       downloadStarted: "Download started",
       readFailed: "Failed to read the file, please retry",
+      modeClipboard: "📋 Clipboard",
+      modeChat: "💬 Ephemeral Chat",
+      chatLobbyTitle: "💬 Ephemeral Chat",
+      chatLobbyDesc: "Create a one-off room and invite someone to chat. Destroy it at any time; messages are never stored.",
+      chatCreate: "Create chat room",
+      chatExit: "Leave room",
+      chatInvite: "🔗 Copy invite link",
+      chatDestroy: "🔥 Destroy session",
+      chatConfirmDestroy: "Destroying clears every message immediately and cannot be undone. Continue?",
+      chatInputPlaceholder: "Type a message; paste a screenshot anytime…",
+      chatSend: "Send",
+      chatAttach: "Attach an image or file",
+      chatEmpty: "No messages yet — say hello",
+      chatConnected: "Connected",
+      chatConnecting: "Connecting…",
+      chatGuestBadge: "Joined the ephemeral relay session",
+      chatRoomLabel: "Room",
+      chatInviteCopied: "Invite link copied — the hash never reaches the server",
+      chatSessionDestroyed: "Session destroyed and chat history cleared",
+      chatExitToast: "Left the ephemeral session",
+      chatOpenFailed: "Couldn't create the room — try again",
+      chatRoomUnavailable: "Room unavailable — try again",
+      chatConnectFailed: "Couldn't join — the invite may have expired",
+      chatInvalidInvite: "Invalid or expired invite link",
+      chatNeedRoom: "Create or join a chat room first",
+      compliance: "Static client only · Zero cloud persistence · Data flows only through your own relay",
       settingsTitle: "⚙️ Settings",
       workerLabel: "Worker API URL",
       workerHint: "Point the console at your own private Worker node. Leave empty to use the default node.",
@@ -791,11 +972,30 @@
   const elPreviewTitle = $('preview-title');
   const elPreviewClose = $('preview-close');
   const elPreviewDownload = $('preview-download');
+  const elModeClipboard = $('mode-clipboard');
+  const elModeChat = $('mode-chat');
+  const elClipboardView = $('clipboard-view');
+  const elChatView = $('chat-view');
+  const elChatLobby = $('chat-lobby');
+  const elChatRoom = $('chat-room');
+  const elChatBadge = $('chat-badge');
+  const elChatStatus = $('chat-status');
+  const elChatExit = $('chat-exit');
+  const elChatHostActions = $('chat-host-actions');
+  const elChatInvite = $('chat-invite');
+  const elChatDestroy = $('chat-destroy');
+  const elChatMessages = $('chat-messages');
+  const elChatInput = $('chat-input');
+  const elChatAttach = $('chat-attach');
+  const elChatSend = $('chat-send');
+  const elChatFile = $('chat-file');
 
   let currentLang = readLang();
   let eventSource = null;
   let busy = false;
   let previewTarget = null;
+  let appMode = 'clipboard';
+  let chat = null;
 
   function readLang() {
     const saved = localStorage.getItem(LS.lang);
@@ -817,7 +1017,9 @@
   function readRoomFromUrl() {
     const query = new URLSearchParams(location.search).get('room') || '';
     let room = query.replace(/\D/g, '').slice(0, 4);
-    if (!room && location.hash) room = location.hash.replace(/^#/, '').replace(/\D/g, '').slice(0, 4);
+    if (!room && location.hash && !location.hash.includes('mode=chat')) {
+      room = location.hash.replace(/^#/, '').replace(/\D/g, '').slice(0, 4);
+    }
     return room;
   }
 
@@ -1242,6 +1444,383 @@
     elMsgContainer.prepend(card);
   }
 
+  function randomString(length) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    const values = new Uint8Array(length);
+    if (globalThis.crypto && globalThis.crypto.getRandomValues) {
+      globalThis.crypto.getRandomValues(values);
+    } else {
+      for (let i = 0; i < length; i += 1) values[i] = Math.floor(Math.random() * 256);
+    }
+    let out = '';
+    for (let i = 0; i < length; i += 1) out += chars[values[i] % chars.length];
+    return out;
+  }
+
+  function randomRoom() {
+    return String(Math.floor(Math.random() * 9000) + 1000);
+  }
+
+  function randomToken() {
+    return `tk_${randomString(16)}`;
+  }
+
+  function randomClientId() {
+    return `c_${randomString(8)}`;
+  }
+
+  function chatEmptyNode() {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.id = 'chat-empty';
+    empty.textContent = t('chatEmpty');
+    return empty;
+  }
+
+  function closeChatStream() {
+    const stream = chat && chat.stream;
+    if (chat) chat.stream = null;
+    if (!stream) return;
+    try {
+      stream.close();
+    } catch (err) {
+      console.warn('[ClipSync] chat close failed', err);
+    }
+  }
+
+  function renderChatUI() {
+    const active = Boolean(chat);
+    elChatLobby.hidden = active;
+    elChatRoom.hidden = !active;
+    elChatHostActions.hidden = !active || chat.role !== 'host';
+    elChatExit.hidden = !active || chat.role !== 'guest';
+    elModeClipboard.classList.toggle('active', appMode === 'clipboard');
+    elModeChat.classList.toggle('active', appMode === 'chat');
+
+    if (!active) {
+      elChatMessages.replaceChildren();
+      return;
+    }
+
+    const connected = chat.connected;
+    elChatBadge.className = `chat-badge${connected ? '' : ' offline'}`;
+    if (chat.role === 'guest') {
+      elChatStatus.textContent = connected ? t('chatGuestBadge') : t('chatConnecting');
+    } else {
+      elChatStatus.textContent = connected
+        ? `${t('chatConnected')} · ${t('chatRoomLabel')} ${chat.room}`
+        : t('chatConnecting');
+    }
+    elChatSend.disabled = !connected;
+    elChatAttach.disabled = !connected;
+
+    const empty = document.getElementById('chat-empty');
+    if (empty) empty.textContent = t('chatEmpty');
+  }
+
+  function handleChatEvent(data) {
+    if (!data || typeof data !== 'object') return;
+    if (data.type === 'system') {
+      if (data.event === 'room_destroyed') teardownChat(true);
+      return;
+    }
+    renderChatMessage(data);
+  }
+
+  function renderChatMessage(message) {
+    if (!chat) return;
+    const content = typeof message.content === 'string'
+      ? message.content
+      : typeof message.text === 'string' ? message.text : '';
+    if (!content) return;
+    const type = message.type === 'image' || message.type === 'file' ? message.type : 'text';
+    const mine = message.sender === chat.clientId;
+
+    const hint = document.getElementById('chat-empty');
+    if (hint) hint.remove();
+
+    const row = document.createElement('div');
+    row.className = `chat-row${mine ? ' mine' : ''}`;
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+
+    if (type === 'image' && content.startsWith('data:image/')) {
+      const img = document.createElement('img');
+      img.className = 'chat-image';
+      img.src = content;
+      img.alt = message.filename || 'image';
+      img.addEventListener('click', () => openPreview(content, message.filename || 'image'));
+
+      const meta = document.createElement('div');
+      meta.className = 'chat-meta';
+      meta.textContent = `${message.filename || 'image'} · ${formatSize(messageBytes(message.size, content))}`;
+
+      bubble.appendChild(img);
+      bubble.appendChild(meta);
+    } else if (type === 'file' && content.startsWith('data:')) {
+      const meta = document.createElement('div');
+      meta.className = 'chat-meta';
+      meta.textContent = `${message.filename || 'file'} · ${formatSize(messageBytes(message.size, content))}`;
+
+      const download = document.createElement('button');
+      download.className = 'btn btn-outline msg-download';
+      download.textContent = t('downloadFile');
+      download.addEventListener('click', () => downloadData(content, message.filename || 'file'));
+
+      bubble.appendChild(meta);
+      bubble.appendChild(download);
+    } else {
+      const text = document.createElement('div');
+      text.className = 'chat-text';
+      text.textContent = content;
+      bubble.appendChild(text);
+    }
+
+    row.appendChild(bubble);
+    elChatMessages.appendChild(row);
+    elChatMessages.scrollTop = elChatMessages.scrollHeight;
+  }
+
+  function connectChat() {
+    if (!chat) return;
+    closeChatStream();
+    const url = `${chat.relay}/events?room=${encodeURIComponent(chat.room)}&token=${encodeURIComponent(chat.token)}`;
+
+    let stream;
+    try {
+      stream = new EventSource(url);
+    } catch (err) {
+      console.warn('[ClipSync] chat connect failed', err);
+      showToast(t('chatConnectFailed'));
+      return;
+    }
+
+    chat.stream = stream;
+    chat.connected = false;
+    renderChatUI();
+
+    stream.onopen = () => {
+      if (!chat || chat.stream !== stream) return;
+      chat.connected = true;
+      renderChatUI();
+    };
+
+    stream.onmessage = (event) => {
+      if (!chat || chat.stream !== stream) return;
+      try {
+        handleChatEvent(JSON.parse(event.data));
+      } catch (err) {
+        console.warn('[ClipSync] chat parse error', err);
+      }
+    };
+
+    stream.onerror = () => {
+      if (!chat || chat.stream !== stream) return;
+      chat.connected = false;
+      if (stream.readyState === EventSource.CLOSED) {
+        closeChatStream();
+        showToast(t('chatConnectFailed'));
+      }
+      renderChatUI();
+    };
+  }
+
+  function teardownChat(notify) {
+    closeChatStream();
+    sessionStorage.removeItem(CHAT_KEYS.host);
+    sessionStorage.removeItem(CHAT_KEYS.guest);
+    sessionStorage.setItem(CHAT_KEYS.mode, 'chat');
+    chat = null;
+    elChatMessages.replaceChildren(chatEmptyNode());
+    renderChatUI();
+    if (notify) showToast(t('chatSessionDestroyed'));
+  }
+
+  async function createChatRoom() {
+    const relay = getWorkerUrl();
+    if (!relay) {
+      promptForRelay();
+      return;
+    }
+
+    const token = randomToken();
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const room = randomRoom();
+      try {
+        const res = await fetch(`${relay}/chat/open?room=${encodeURIComponent(room)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        if (res.status === 403) continue;
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        chat = { role: 'host', room, token, relay, clientId: randomClientId(), connected: false, stream: null };
+        sessionStorage.setItem(CHAT_KEYS.host, JSON.stringify({ room, token, relay }));
+        sessionStorage.removeItem(CHAT_KEYS.guest);
+        sessionStorage.setItem(CHAT_KEYS.mode, 'chat');
+        renderChatUI();
+        connectChat();
+        return;
+      } catch (err) {
+        console.warn('[ClipSync] create chat failed', err);
+        showToast(t('chatOpenFailed'));
+        return;
+      }
+    }
+    showToast(t('chatRoomUnavailable'));
+  }
+
+  async function copyChatInvite() {
+    if (!chat || chat.role !== 'host') return;
+    const params = new URLSearchParams({
+      mode: 'chat',
+      room: chat.room,
+      token: chat.token,
+      relay: btoa(chat.relay)
+    });
+    const link = `${location.origin}${location.pathname}#${params.toString()}`;
+    const ok = await copyText(link);
+    showToast(ok ? t('chatInviteCopied') : t('shareFail'));
+  }
+
+  async function sendChatPayload(payload) {
+    if (!chat || !chat.connected) {
+      showToast(t('chatNeedRoom'));
+      return false;
+    }
+    try {
+      const res = await fetch(
+        `${chat.relay}/send?room=${encodeURIComponent(chat.room)}&token=${encodeURIComponent(chat.token)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, sender: chat.clientId })
+        }
+      );
+      if (res.status === 403) {
+        teardownChat(true);
+        return false;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return true;
+    } catch (err) {
+      console.warn('[ClipSync] chat send failed', err);
+      showToast(t('sendFail'));
+      return false;
+    }
+  }
+
+  async function sendChatText() {
+    const text = elChatInput.value;
+    if (!text.trim()) {
+      showToast(t('emptyWarn'));
+      return;
+    }
+    elChatSend.disabled = true;
+    try {
+      if (await sendChatPayload({ type: 'text', content: text })) elChatInput.value = '';
+    } finally {
+      renderChatUI();
+    }
+  }
+
+  async function sendChatFile(file) {
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      showToast(t('fileTooLarge'));
+      return;
+    }
+    const isImage = (file.type || '').startsWith('image/');
+    try {
+      const dataUrl = await readAsDataURL(file);
+      await sendChatPayload({
+        type: isImage ? 'image' : 'file',
+        content: dataUrl,
+        filename: file.name || (isImage ? 'image.png' : 'file'),
+        size: file.size
+      });
+    } catch (err) {
+      console.warn('[ClipSync] chat file read failed', err);
+      showToast(t('readFailed'));
+    }
+  }
+
+  async function destroyChat() {
+    if (!chat || chat.role !== 'host') return;
+    if (!window.confirm(t('chatConfirmDestroy'))) return;
+    try {
+      await fetch(`${chat.relay}/send?room=${encodeURIComponent(chat.room)}&token=${encodeURIComponent(chat.token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'system', action: 'room_destroy', token: chat.token })
+      });
+    } catch (err) {
+      console.warn('[ClipSync] destroy failed', err);
+    }
+    teardownChat(true);
+  }
+
+  function enterGuestChat(invite) {
+    chat = { role: 'guest', ...invite, clientId: randomClientId(), connected: false, stream: null };
+    sessionStorage.setItem(CHAT_KEYS.guest, JSON.stringify({ room: invite.room, token: invite.token, relay: invite.relay }));
+    sessionStorage.removeItem(CHAT_KEYS.host);
+    sessionStorage.setItem(CHAT_KEYS.mode, 'chat');
+    setMode('chat');
+    connectChat();
+  }
+
+  function restoreChatSession() {
+    if (sessionStorage.getItem(CHAT_KEYS.mode) !== 'chat') return;
+    const raw = sessionStorage.getItem(CHAT_KEYS.guest) || sessionStorage.getItem(CHAT_KEYS.host);
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      if (!data || !data.room || !data.token || !data.relay) return;
+      const role = sessionStorage.getItem(CHAT_KEYS.guest) ? 'guest' : 'host';
+      chat = { role, room: data.room, token: data.token, relay: data.relay, clientId: randomClientId(), connected: false, stream: null };
+      setMode('chat');
+      connectChat();
+    } catch (err) {
+      console.warn('[ClipSync] restore chat failed', err);
+    }
+  }
+
+  function readChatInvite() {
+    if (!location.hash) return null;
+    const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+    if (params.get('mode') !== 'chat') return null;
+
+    const room = (params.get('room') || '').replace(/\D/g, '').slice(0, 4);
+    const token = (params.get('token') || '').trim();
+    let relay = '';
+    try {
+      relay = atob(params.get('relay') || '');
+    } catch (err) {
+      relay = '';
+    }
+
+    history.replaceState(null, '', location.pathname);
+
+    if (!room || !TOKEN_RE.test(token) || !/^https?:\/\/.+/i.test(relay)) {
+      showToast(t('chatInvalidInvite'));
+      return null;
+    }
+    return { room, token, relay };
+  }
+
+  function setMode(mode) {
+    appMode = mode;
+    sessionStorage.setItem(CHAT_KEYS.mode, mode);
+    elClipboardView.hidden = mode !== 'clipboard';
+    elChatView.hidden = mode !== 'chat';
+    elModeClipboard.classList.toggle('active', mode === 'clipboard');
+    elModeChat.classList.toggle('active', mode === 'chat');
+    elModeClipboard.setAttribute('aria-selected', String(mode === 'clipboard'));
+    elModeChat.setAttribute('aria-selected', String(mode === 'chat'));
+    renderChatUI();
+  }
+
   function openSettings() {
     elWorker.value = getWorkerUrl();
     elSettingsModal.classList.add('active');
@@ -1295,6 +1874,12 @@
     elPreviewClose.setAttribute('aria-label', dict.closeBtn);
     elPreviewDownload.textContent = dict.saveImage;
     if (previewTarget) elPreviewTitle.textContent = previewTarget.filename || dict.previewTitle;
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      el.placeholder = dict[el.dataset.i18nPlaceholder];
+    });
+    elChatAttach.setAttribute('aria-label', dict.chatAttach);
+    elChatAttach.title = dict.chatAttach;
+    renderChatUI();
 
     $('g-recv-opt1-d').innerHTML = dict.gRecvOpt1D;
     $('g-recv-opt2-d').innerHTML = dict.gRecvOpt2D;
@@ -1384,7 +1969,9 @@
         const file = item.getAsFile();
         if (file) {
           event.preventDefault();
-          sendFile(file);
+          if (appMode === 'chat' && chat) sendChatFile(file);
+          else if (appMode === 'chat') showToast(t('chatNeedRoom'));
+          else sendFile(file);
         }
         return;
       }
@@ -1416,6 +2003,29 @@
   });
   elPreviewDownload.addEventListener('click', () => {
     if (previewTarget) downloadData(previewTarget.content, previewTarget.filename);
+  });
+
+  elModeClipboard.addEventListener('click', () => setMode('clipboard'));
+  elModeChat.addEventListener('click', () => setMode('chat'));
+  document.getElementById('chat-create').addEventListener('click', createChatRoom);
+  elChatInvite.addEventListener('click', copyChatInvite);
+  elChatDestroy.addEventListener('click', destroyChat);
+  elChatExit.addEventListener('click', () => {
+    teardownChat(false);
+    showToast(t('chatExitToast'));
+  });
+  elChatSend.addEventListener('click', sendChatText);
+  elChatAttach.addEventListener('click', () => elChatFile.click());
+  elChatFile.addEventListener('change', () => {
+    const file = elChatFile.files && elChatFile.files[0];
+    elChatFile.value = '';
+    if (file) sendChatFile(file);
+  });
+  elChatInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendChatText();
+    }
   });
 
   elSettingsBtn.addEventListener('click', openSettings);
@@ -1470,8 +2080,12 @@
 
   window.addEventListener('pagehide', () => closeStream());
 
+  const chatInvite = readChatInvite();
   const presetRoom = readRoomFromUrl();
-  if (presetRoom) {
+
+  if (chatInvite) {
+    elRoom.value = '';
+  } else if (presetRoom) {
     elRoom.value = presetRoom;
     localStorage.setItem(LS.room, presetRoom);
   } else {
@@ -1479,12 +2093,17 @@
   }
 
   applyLanguage(currentLang);
-  if (presetRoom && getWorkerUrl()) {
-    connect();
-  } else if (presetRoom) {
-    promptForRelay();
+
+  if (chatInvite) {
+    enterGuestChat(chatInvite);
   } else {
-    updateUI();
+    restoreChatSession();
+  }
+
+  if (!chat) {
+    if (presetRoom && getWorkerUrl()) connect();
+    else if (presetRoom) promptForRelay();
+    else updateUI();
   }
 </script>
 </body>

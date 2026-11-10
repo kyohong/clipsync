@@ -1,6 +1,6 @@
 # ⚡ ClipSync
 
-> **Zero-Install, Ephemeral Cross-Device Clipboard Relay**<br>
+> **Zero-Install, Ephemeral Cross-Device Clipboard & Chat Relay**<br>
 > Instant bidirectional clipboard sync between mobile and desktop across mixed operating systems. Built for multi-device developer workflows and cross-network collaboration—no installs, no chat apps, and zero persistent storage.
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kyohong/clipsync/tree/main/worker)
@@ -41,9 +41,19 @@ Modern development spans heterogeneous devices: a phone for capture and quick AI
 - 🆓 **100% Free Edge Compute:** Fully operates within Cloudflare's free tier (100,000 requests/day). Zero infrastructure fees for personal and small-team use.
 - 📎 **Images, Screenshots & Light Files:** Paste a screenshot, drop a file, or attach one from the picker (≤ 8MB). Payloads travel as data URLs through your own relay.
 - 🔐 **Bring Your Own Backend (BYOB):** The relay runs inside your own Cloudflare account. There is no shared public relay and no third-party backend, so the traffic stays on infrastructure you control.
+- 💬 **Ephemeral Chat Mode:** Host a one-off text/image chat with a hash-based invite; the relay validates an in-memory token and wipes both sides on destroy.
 - 🔌 **Flexible Dual-Client Model:**
   - **Web Console ([clipsync-web.pages.dev](https://clipsync-web.pages.dev)):** Ideal for temporary terminals, shared desktops, and mobile browsers without setup.
   - **Chrome MV3 Extension:** Seamless background sync directly into the system clipboard on your dedicated development machine.
+
+---
+
+## 🧩 Two Modes
+
+- **📋 Clipboard Mode:** The original relay, fully preserved. Send text, screenshots, or light files (≤ 8MB) from any device; the desktop receives them instantly or copies from the live feed.
+- **💬 Ephemeral Chat:** The host creates a one-off room and shares a hash-only invite link (`#mode=chat&room=…&token=…&relay=…`). Guests need no configuration: the hash is parsed in the browser, written to `sessionStorage`, and stripped from the address bar with `history.replaceState` before anything else happens. The relay compares the session token in Durable Object memory and returns `403` on any mismatch.
+
+Session tokens exist only in DO memory and the current tab's `sessionStorage`. Destroying a session broadcasts a teardown event, closes every stream, and wipes the chat DOM on both sides.
 
 ---
 
@@ -151,6 +161,7 @@ Take note of your deployed Worker URL: `https://clipsync-relay.<subdomain>.worke
 - The pairing code is the only access control. Anyone who knows (or guesses) the 4-digit code can send to and read from that room—treat it as public and pick a non-obvious code.
 - There is no end-to-end encryption. Text is relayed over TLS and is readable by the relay (Cloudflare) while in flight.
 - Do not send passwords, API keys, or other long-lived secrets.
+- Ephemeral-chat invites carry the session token in the URL hash. Treat the link as a secret: anyone holding it can join until the host destroys the session.
 
 ---
 

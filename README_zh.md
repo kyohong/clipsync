@@ -1,6 +1,6 @@
 # ⚡ ClipSync
 
-> **免安装、零存储的跨端临时剪贴板中继工具**<br>
+> **免安装、零存储的跨端临时剪贴板与对聊中继工具**<br>
 > 面向多设备开发者与跨网络协作场景的双向实时剪贴板同步方案。无需安装客户端，不登录聊天账号，数据纯内存转发，断开即清空。
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kyohong/clipsync/tree/main/worker)
@@ -41,9 +41,19 @@
 - 🆓 **免费边缘算力，永久免费：** 适配 Cloudflare Workers 免费配额（每天 100,000 次请求），个人与小团队日常使用零费用。
 - 📎 **图片、截图与轻量文件：** 支持粘贴截图、拖拽或选择文件（单个 ≤ 8MB），以 DataURL 经你自己的中继转发。
 - 🔐 **自带后端（BYOB）：** 中继部署在你自己的 Cloudflare 账号下，不存在共享公共中继，也没有任何第三方后端，流量始终落在你可控的基础设施上。
+- 💬 **临时对聊模式：** 房主创建一次性房间，通过 Hash 邀请链接分享；中继按内存 Token 校验，销毁即清空双方界面。
 - 🔌 **灵活双端架构：**
   - **免安装 Web 主控台 ([clipsync-web.pages.dev](https://clipsync-web.pages.dev))：** 任意工作机、临时演示设备或手机浏览器打开即用。
   - **Chrome MV3 扩展：** 个人主力机可加载轻量插件，通过 Offscreen Document 自动写入系统剪贴板。
+
+---
+
+## 🧩 双模式说明
+
+- **📋 剪贴板模式：** 原有能力完整保留。任意设备发送文本、截图或轻量文件（≤ 8MB），电脑端实时接收或从记录中复制。
+- **💬 临时对聊：** 房主创建一次性房间并分享仅含 Hash 的邀请链接（`#mode=chat&room=…&token=…&relay=…`）。受邀方无需配置：Hash 只在浏览器内解析，写入 `sessionStorage` 后立刻用 `history.replaceState` 从地址栏抹去。中继在 Durable Object 内存中校验会话 Token，不匹配直接返回 `403`。
+
+会话 Token 只存在于 DO 内存与当前标签页的 `sessionStorage`。销毁会话会广播 teardown 事件、关闭所有流，并清空双方的聊天 DOM。
 
 ---
 
@@ -154,6 +164,7 @@ npx wrangler deploy
 - 4 位配对码是唯一凭证：知道（或猜到）它的人即可收发该房间的内容，请把它当成公开房间，避免使用 `0000` 这类弱码。
 - 没有端到端加密：文本经 TLS 传输，中转方 Cloudflare 在链路中可见。
 - 不要发送密码、长期有效的 API Key 等敏感凭证。
+- 临时对聊的邀请链接把会话 Token 放在 URL Hash 中。请把链接当作密钥：任何持有者都能在房主销毁会话前加入。
 
 ---
 
