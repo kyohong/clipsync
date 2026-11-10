@@ -268,6 +268,65 @@
       text-align: center;
     }
     .send-hint[hidden] { display: none; }
+    .media-row { display: flex; gap: 10px; align-items: stretch; }
+    .media-row .btn-primary { flex: 1; margin-top: 0; }
+    .file-btn {
+      width: 52px;
+      min-width: 52px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #f8fafc;
+      font-size: 20px;
+      cursor: pointer;
+      transition: background-color 0.15s, opacity 0.15s;
+    }
+    .file-btn:not(:disabled):hover { background: #e2e8f0; }
+    .file-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .media-hint { margin-top: 8px; font-size: 12px; color: var(--text-muted); text-align: center; }
+    #send-card.dragover { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16); }
+
+    .msg-image {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #fff;
+      cursor: zoom-in;
+    }
+    .msg-meta { font-size: 11px; color: var(--text-muted); word-break: break-all; }
+    .msg-file {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border: 1px solid #edf2f7;
+      border-radius: 6px;
+      background: #fff;
+    }
+    .file-icon { font-size: 20px; }
+    .file-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .file-name {
+      font-size: 12px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-size { font-size: 11px; color: var(--text-muted); }
+    .msg-download { width: auto; margin: 0; padding: 6px 10px; font-size: 12px; }
+    .preview-card { max-width: 720px; }
+    .preview-image {
+      width: 100%;
+      max-height: 65vh;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
 
     .input-group { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
     .field-hint { font-size: 12px; line-height: 1.5; color: var(--text-muted); }
@@ -418,15 +477,20 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="send-card">
     <div class="section-title">
       <span id="ui-send-title" data-i18n="sendTitle">发送至云端</span>
     </div>
 
-    <button class="btn btn-primary" id="btn-paste-send" disabled>
-      <span id="label-quick-send" data-i18n="btnQuickSend">一键读取本机剪贴板并发送</span>
-    </button>
+    <div class="media-row">
+      <button class="btn btn-primary" id="btn-paste-send" disabled>
+        <span id="label-quick-send" data-i18n="btnQuickSend">一键读取本机剪贴板并发送</span>
+      </button>
+      <button class="file-btn" id="file-btn" disabled title="上传图片或文件" aria-label="上传图片或文件">📎</button>
+    </div>
+    <input type="file" id="file-input" hidden accept="image/*,.txt,.md,.json,.csv,.log,.pdf,.zip">
     <p class="send-hint" id="send-hint">请先连接房间</p>
+    <p class="media-hint" id="media-hint" data-i18n="mediaHint">支持粘贴截图、拖拽文件，或点击 📎 选择（单个文件 ≤ 8MB）</p>
 
     <div class="input-group">
       <label id="lbl-manual" for="manual-text" data-i18n="lblManual">备用手动输入区</label>
@@ -500,11 +564,25 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+  <div class="modal-card preview-card">
+    <div class="modal-header">
+      <h2 id="preview-title" data-i18n="previewTitle">图片预览</h2>
+      <button class="close-btn" id="preview-close" aria-label="Close">&times;</button>
+    </div>
+    <img id="preview-image" class="preview-image" alt="">
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="preview-download" data-i18n="saveImage">保存图片</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
   // Set this to your public relay URL to make the hosted web console work out of the box.
   const DEFAULT_WORKER_URL = '';
+  const MAX_FILE_SIZE = 8 * 1024 * 1024;
 
   const LS = {
     lang: 'clipsync_lang',
@@ -527,6 +605,18 @@
       shareNeedRoom: "请先输入房间码",
       shareCopied: "加入链接已复制，发给朋友或其他设备打开即可直接互联！",
       shareFail: "复制失败，请手动复制地址栏链接",
+      attachTitle: "上传图片或文件",
+      mediaHint: "支持粘贴截图、拖拽文件，或点击 📎 选择（单个文件 ≤ 8MB）",
+      sending: "发送中…",
+      fileTooLarge: "文件大小超过 8MB 限制，请发送轻量文件或截图",
+      imageSent: "✓ 图片已发送",
+      fileSent: "✓ 文件已发送",
+      previewTitle: "图片预览",
+      saveImage: "保存图片",
+      downloadFile: "下载",
+      viewImage: "点击查看大图",
+      downloadStarted: "下载已开始",
+      readFailed: "文件读取失败，请重试",
       settingsTitle: "⚙️ 设置",
       workerLabel: "Worker API 地址",
       workerHint: "支持配置私有化 Worker 节点；留空则使用默认节点。",
@@ -597,6 +687,18 @@
       shareNeedRoom: "Enter a room code first",
       shareCopied: "Join link copied — open it on another device to connect instantly!",
       shareFail: "Copy failed — copy the address bar URL manually",
+      attachTitle: "Attach an image or file",
+      mediaHint: "Paste a screenshot, drop a file, or click 📎 to attach (≤ 8MB each)",
+      sending: "Sending…",
+      fileTooLarge: "File exceeds 8MB limit — send a lighter file or screenshot",
+      imageSent: "✓ Image sent",
+      fileSent: "✓ File sent",
+      previewTitle: "Image preview",
+      saveImage: "Save image",
+      downloadFile: "Download",
+      viewImage: "Click to view full size",
+      downloadStarted: "Download started",
+      readFailed: "Failed to read the file, please retry",
       settingsTitle: "⚙️ Settings",
       workerLabel: "Worker API URL",
       workerHint: "Point the console at your own private Worker node. Leave empty to use the default node.",
@@ -681,9 +783,19 @@
   const elGuideBtn = $('guide-btn');
   const elGuideModal = $('guide-modal');
   const elGuideClose = $('modal-close');
+  const elFileBtn = $('file-btn');
+  const elFileInput = $('file-input');
+  const elSendCard = $('send-card');
+  const elPreview = $('preview-modal');
+  const elPreviewImg = $('preview-image');
+  const elPreviewTitle = $('preview-title');
+  const elPreviewClose = $('preview-close');
+  const elPreviewDownload = $('preview-download');
 
   let currentLang = readLang();
   let eventSource = null;
+  let busy = false;
+  let previewTarget = null;
 
   function readLang() {
     const saved = localStorage.getItem(LS.lang);
@@ -752,8 +864,10 @@
     elConnect.classList.toggle('ready', !streaming && elRoom.value.length === 4);
     elRoom.disabled = streaming;
 
-    elQuick.disabled = !connected;
-    elManualSend.disabled = !connected;
+    const canSend = connected && !busy;
+    elQuick.disabled = !canSend;
+    elManualSend.disabled = !canSend;
+    elFileBtn.disabled = !canSend;
     elSendHint.hidden = connected;
 
     if (connected) {
@@ -805,7 +919,7 @@
       if (eventSource !== stream) return;
       try {
         const data = JSON.parse(event.data);
-        if (data && data.text) renderIncomingMessage(data.text);
+        if (data) renderIncomingMessage(data);
       } catch (err) {
         console.error('[ClipSync] parse error', err);
       }
@@ -873,35 +987,162 @@
     showToast(ok ? t('shareCopied') : t('shareFail'));
   });
 
-  async function sendPayload(text) {
+  function formatSize(bytes) {
+    const value = Number(bytes) || 0;
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function messageBytes(size, content) {
+    if (Number(size) > 0) return Number(size);
+    const comma = content.indexOf(',');
+    return comma > 0 ? Math.round((content.length - comma - 1) * 0.75) : 0;
+  }
+
+  function downloadData(content, filename) {
+    if (typeof content !== 'string' || !content.startsWith('data:')) return;
+    const link = document.createElement('a');
+    link.href = content;
+    link.download = filename || 'clipsync-download';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast(t('downloadStarted'));
+  }
+
+  function readAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error || new Error('read failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function setBusy(value) {
+    busy = value;
+    elSendCard.setAttribute('aria-busy', String(value));
+    updateUI();
+  }
+
+  async function sendMessage(payload, successKey) {
     if (!isConnected()) {
       showToast(t('needConnect'));
       return false;
     }
-    if (!text || !text.trim()) {
-      showToast(t('emptyWarn'));
-      return false;
-    }
-
     const workerUrl = getWorkerUrl();
     const room = elRoom.value.trim();
-
+    setBusy(true);
+    showToast(t('sending'));
     try {
       const res = await fetch(`${workerUrl}/send?room=${encodeURIComponent(room)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ room, timestamp: Date.now(), ...payload })
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      showToast(t('sendSuccess'));
+      showToast(t(successKey));
       return true;
     } catch (err) {
       showToast(t('sendFail'));
       return false;
+    } finally {
+      setBusy(false);
     }
   }
 
-  function renderIncomingMessage(text) {
+  async function sendPayload(text) {
+    if (!text || !text.trim()) {
+      showToast(t('emptyWarn'));
+      return false;
+    }
+    return sendMessage({ type: 'text', content: text }, 'sendSuccess');
+  }
+
+  async function sendFile(file) {
+    if (!file) return false;
+    if (!isConnected()) {
+      showToast(t('needConnect'));
+      return false;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      showToast(t('fileTooLarge'));
+      return false;
+    }
+    const isImage = (file.type || '').startsWith('image/');
+    setBusy(true);
+    try {
+      const dataUrl = await readAsDataURL(file);
+      return await sendMessage(
+        {
+          type: isImage ? 'image' : 'file',
+          content: dataUrl,
+          filename: file.name || (isImage ? 'image.png' : 'file'),
+          size: file.size
+        },
+        isImage ? 'imageSent' : 'fileSent'
+      );
+    } catch (err) {
+      console.error('[ClipSync] file read failed', err);
+      showToast(t('readFailed'));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function readClipboard() {
+    if (navigator.clipboard && navigator.clipboard.read) {
+      try {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const imageType = item.types.find((type) => type.startsWith('image/'));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            const ext = imageType.split('/')[1] || 'png';
+            const file = typeof File === 'function'
+              ? new File([blob], `clipboard-${Date.now()}.${ext}`, { type: imageType })
+              : blob;
+            return { file };
+          }
+        }
+        for (const item of items) {
+          if (item.types.includes('text/plain')) {
+            const blob = await item.getType('text/plain');
+            return { text: await blob.text() };
+          }
+        }
+        return {};
+      } catch (err) {
+        console.warn('[ClipSync] clipboard.read failed, falling back to readText', err);
+      }
+    }
+    return { text: await navigator.clipboard.readText() };
+  }
+
+  function openPreview(content, filename) {
+    previewTarget = { content, filename };
+    elPreviewImg.src = content;
+    elPreviewImg.alt = filename || '';
+    elPreviewTitle.textContent = filename || t('previewTitle');
+    elPreviewDownload.textContent = t('saveImage');
+    elPreview.classList.add('active');
+  }
+
+  function closePreview() {
+    elPreview.classList.remove('active');
+    elPreviewImg.src = '';
+    previewTarget = null;
+  }
+
+  function renderIncomingMessage(message) {
+    const type = message && (message.type === 'image' || message.type === 'file') ? message.type : 'text';
+    const content = message && typeof message.content === 'string'
+      ? message.content
+      : message && typeof message.text === 'string' ? message.text : '';
+    if (!content) return;
+
     const hint = document.getElementById('empty-hint');
     if (hint) hint.remove();
 
@@ -916,30 +1157,86 @@
 
     const timeSpan = document.createElement('span');
     timeSpan.textContent = `⚡ ${time}`;
-
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'msg-copy';
-    copyBtn.textContent = '📋';
-    copyBtn.title = t('btnCopy');
-    copyBtn.setAttribute('aria-label', t('btnCopy'));
-
-    copyBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(text);
-        copyBtn.textContent = '✓';
-        showToast(t('copied'));
-        setTimeout(() => { copyBtn.textContent = '📋'; }, 1500);
-      } catch (err) {
-        showToast(t('copyFail'));
-      }
-    });
-
     header.appendChild(timeSpan);
-    header.appendChild(copyBtn);
+
+    const isImage = type === 'image' && content.startsWith('data:image/');
+    const isFile = type === 'file' && content.startsWith('data:');
+    const filename = message && typeof message.filename === 'string' && message.filename
+      ? message.filename
+      : isImage ? 'image' : 'file';
+    const size = messageBytes(message && message.size, content);
 
     const body = document.createElement('div');
-    body.className = 'msg-content';
-    body.textContent = text;
+
+    if (isImage) {
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'msg-copy';
+      saveBtn.textContent = '⬇️';
+      saveBtn.title = t('saveImage');
+      saveBtn.setAttribute('aria-label', t('saveImage'));
+      saveBtn.addEventListener('click', () => downloadData(content, filename));
+      header.appendChild(saveBtn);
+
+      const img = document.createElement('img');
+      img.className = 'msg-image';
+      img.src = content;
+      img.alt = filename;
+      img.title = t('viewImage');
+      img.addEventListener('click', () => openPreview(content, filename));
+
+      const meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      meta.textContent = `${filename} · ${formatSize(size)}`;
+
+      body.appendChild(img);
+      body.appendChild(meta);
+    } else if (isFile) {
+      body.className = 'msg-file';
+
+      const icon = document.createElement('span');
+      icon.className = 'file-icon';
+      icon.textContent = '📄';
+
+      const info = document.createElement('div');
+      info.className = 'file-info';
+      const name = document.createElement('span');
+      name.className = 'file-name';
+      name.textContent = filename;
+      const fileSize = document.createElement('span');
+      fileSize.className = 'file-size';
+      fileSize.textContent = formatSize(size);
+      info.appendChild(name);
+      info.appendChild(fileSize);
+
+      const download = document.createElement('button');
+      download.className = 'btn btn-outline msg-download';
+      download.textContent = t('downloadFile');
+      download.addEventListener('click', () => downloadData(content, filename));
+
+      body.appendChild(icon);
+      body.appendChild(info);
+      body.appendChild(download);
+    } else {
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'msg-copy';
+      copyBtn.textContent = '📋';
+      copyBtn.title = t('btnCopy');
+      copyBtn.setAttribute('aria-label', t('btnCopy'));
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(content);
+          copyBtn.textContent = '✓';
+          showToast(t('copied'));
+          setTimeout(() => { copyBtn.textContent = '📋'; }, 1500);
+        } catch (err) {
+          showToast(t('copyFail'));
+        }
+      });
+      header.appendChild(copyBtn);
+
+      body.className = 'msg-content';
+      body.textContent = content;
+    }
 
     card.appendChild(header);
     card.appendChild(body);
@@ -988,6 +1285,11 @@
     elSettingsClose.setAttribute('aria-label', dict.closeBtn);
     elGuideClose.setAttribute('aria-label', dict.closeBtn);
     elSendHint.textContent = dict.needConnect;
+    elFileBtn.setAttribute('aria-label', dict.attachTitle);
+    elFileBtn.title = dict.attachTitle;
+    elPreviewClose.setAttribute('aria-label', dict.closeBtn);
+    elPreviewDownload.textContent = dict.saveImage;
+    if (previewTarget) elPreviewTitle.textContent = previewTarget.filename || dict.previewTitle;
 
     $('g-recv-opt1-d').innerHTML = dict.gRecvOpt1D;
     $('g-recv-opt2-d').innerHTML = dict.gRecvOpt2D;
@@ -1029,23 +1331,24 @@
       showToast(t('needConnect'));
       return;
     }
-    elQuick.disabled = true;
+    let payload;
     try {
-      let text;
-      try {
-        text = await navigator.clipboard.readText();
-      } catch (err) {
-        showToast(t('clipDenied'));
-        elManual.focus();
-        return;
-      }
-      if (!text || !text.trim()) {
-        showToast(t('emptyWarn'));
-        return;
-      }
-      if (await sendPayload(text)) flashLabel(elLabelQuick, 'sent', 'btnQuickSend');
-    } finally {
-      updateUI();
+      payload = await readClipboard();
+    } catch (err) {
+      showToast(t('clipDenied'));
+      elManual.focus();
+      return;
+    }
+    if (payload.file) {
+      await sendFile(payload.file);
+      return;
+    }
+    if (!payload.text || !payload.text.trim()) {
+      showToast(t('emptyWarn'));
+      return;
+    }
+    if (await sendMessage({ type: 'text', content: payload.text }, 'sendSuccess')) {
+      flashLabel(elLabelQuick, 'sent', 'btnQuickSend');
     }
   });
 
@@ -1054,15 +1357,60 @@
       showToast(t('needConnect'));
       return;
     }
-    elManualSend.disabled = true;
-    try {
-      if (await sendPayload(elManual.value)) {
-        elManual.value = '';
-        flashLabel(elLabelManual, 'sent', 'btnManualSend');
-      }
-    } finally {
-      updateUI();
+    if (await sendPayload(elManual.value)) {
+      elManual.value = '';
+      flashLabel(elLabelManual, 'sent', 'btnManualSend');
     }
+  });
+
+  elFileBtn.addEventListener('click', () => elFileInput.click());
+
+  elFileInput.addEventListener('change', () => {
+    const file = elFileInput.files && elFileInput.files[0];
+    elFileInput.value = '';
+    if (file) sendFile(file);
+  });
+
+  document.addEventListener('paste', (event) => {
+    const items = event.clipboardData && event.clipboardData.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type && item.type.indexOf('image') !== -1) {
+        const file = item.getAsFile();
+        if (file) {
+          event.preventDefault();
+          sendFile(file);
+        }
+        return;
+      }
+    }
+  });
+
+  ['dragenter', 'dragover'].forEach((type) => {
+    elSendCard.addEventListener(type, (event) => {
+      event.preventDefault();
+      elSendCard.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach((type) => {
+    elSendCard.addEventListener(type, (event) => {
+      event.preventDefault();
+      elSendCard.classList.remove('dragover');
+    });
+  });
+
+  elSendCard.addEventListener('drop', (event) => {
+    const files = event.dataTransfer && event.dataTransfer.files;
+    if (files && files[0]) sendFile(files[0]);
+  });
+
+  elPreviewClose.addEventListener('click', closePreview);
+  elPreview.addEventListener('click', (event) => {
+    if (event.target === elPreview) closePreview();
+  });
+  elPreviewDownload.addEventListener('click', () => {
+    if (previewTarget) downloadData(previewTarget.content, previewTarget.filename);
   });
 
   elSettingsBtn.addEventListener('click', openSettings);
@@ -1112,6 +1460,7 @@
     if (event.key !== 'Escape') return;
     closeSettings();
     closeGuide();
+    closePreview();
   });
 
   window.addEventListener('pagehide', () => closeStream());

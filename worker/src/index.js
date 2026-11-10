@@ -7,6 +7,8 @@ const CORS = {
 
 const encoder = new TextEncoder();
 const MAX_TEXT_LENGTH = 200000;
+const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
+const MAX_MEDIA_CHARS = 12000000;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -79,20 +81,36 @@ export class ClipRoom {
       return json({ error: "Invalid JSON" }, 400);
     }
 
-    const text = body?.text;
-    if (typeof text !== "string") return json({ error: "text required" }, 400);
-    if (text.length > MAX_TEXT_LENGTH) return json({ error: "text too large" }, 413);
+    const type = body?.type === "image" || body?.type === "file" ? body.type : "text";
+    const content = typeof body?.content === "string" ? body.content : body?.text;
+    if (typeof content !== "string") return json({ error: "content required" }, 400);
 
-    const payload = `data: ${JSON.stringify({ text })}\n\n`;
+    if (type === "text") {
+      if (content.length > MAX_TEXT_LENGTH) return json({ error: "text too large" }, 413);
+    } else {
+      if (!content.startsWith("data:")) return json({ error: "invalid content" }, 400);
+      if (content.length > MAX_MEDIA_CHARS) return json({ error: "file too large" }, 413);
+      if (Number(body?.size) > MAX_MEDIA_BYTES) return json({ error: "file too large" }, 413);
+    }
+
+    const message = { type, content, timestamp: Date.now() };
+    if (type === "text") {
+      message.text = content;
+    } else {
+      message.filename = typeof body?.filename === "string" ? body.filename.slice(0, 200) : "file";
+      message.size = Number(body?.size) || 0;
+    }
+
     const targets = [...this.sessions];
-
-    for (const session of targets) this.write(session, payload);
+    const frame = encoder.encode(`data: ${JSON.stringify(message)}\n\n`);
+    for (const session of targets) this.write(session, frame);
 
     return json({ success: true, delivered: targets.length, count: targets.length });
   }
 
   write(session, chunk) {
-    session.writer.write(encoder.encode(chunk)).catch(() => {
+    const bytes = typeof chunk === "string" ? encoder.encode(chunk) : chunk;
+    session.writer.write(bytes).catch(() => {
       this.sessions.delete(session);
     });
   }
