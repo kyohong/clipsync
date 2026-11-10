@@ -1,7 +1,7 @@
 # ⚡ ClipSync
 
 > **Zero-Install, Ephemeral Cross-Device Clipboard Relay**<br>
-> Instant bidirectional clipboard sync between mobile and desktop across incompatible ecosystems. Designed for restricted corporate workstations and multi-device setups—no admin permissions, no chat apps, and zero persistent storage.
+> Instant bidirectional clipboard sync between mobile and desktop across mixed operating systems. Built for multi-device developer workflows and cross-network collaboration—no installs, no chat apps, and zero persistent storage.
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kyohong/clipsync/tree/main/worker)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -14,24 +14,23 @@
 
 ## 💡 Why ClipSync?
 
-When troubleshooting on a PC, taking a photo of compiler errors with your mobile AI and having it draft a solution is effortless. But getting generated code, sensitive API tokens, or commands back onto your work machine is notoriously broken:
+Modern development spans heterogeneous devices: a phone for capture and quick AI assistance, a desktop for execution and debugging. Moving snippets, logs, or temporary test payloads between them is still awkward:
 
-- **Ecosystem Barriers:** Apple Universal Clipboard only works between Apple devices. iPhone + Windows or Android + Mac users are completely locked out.
-- **Enterprise Restrictions & Isolation:** Most LAN sync utilities (e.g., LocalSend, KDE Connect) fail on corporate Wi-Fi due to AP/Client Isolation policies, or require admin credentials to install.
-- **Privacy & Security Hazards:** Pasting sensitive API keys, cloud credentials, or proprietary snippets into personal chat apps (WeChat Transfer, WhatsApp, Slack) leaves permanent audit logs on third-party servers and risks corporate compliance flags.
+- **Ecosystem Fragmentation:** Apple's Universal Clipboard works only between Apple devices; mixed setups such as iPhone + Windows or Mac + Android have no equivalent.
+- **Local-Network Topology Limits:** Many open-source transfer tools (e.g., LocalSend) rely on devices sharing the same LAN and on mDNS/broadcast discovery. On cellular networks, guest Wi-Fi, or segmented subnets, devices simply cannot discover each other.
+- **Privacy Overhead of Chat Apps:** Using a personal messaging account as a transfer buffer leaves redundant chat history and requires signing in to a personal account just to move a temporary snippet.
 
-**ClipSync resolves this through a lightweight, web-first in-memory relay.**
+**ClipSync addresses this with a lightweight, web-first in-memory relay: open a page, send and receive, and nothing is retained beyond the memory pipeline.**
 
 ---
 
-## 🏢 Built for Restricted Workstations
+## 💡 Core Design Principles & Architecture
 
-Unlike traditional sync tools that assume an open home network with full system privileges, ClipSync is built from the ground up for locked-down enterprise machines:
-
-- **Zero Install & Zero Admin Rights:** Operates 100% inside any standard browser via [clipsync-web.pages.dev](https://clipsync-web.pages.dev). No `.exe`, no elevated privileges, and no IT approval tickets.
-- **Bypasses Network Isolation:** Connects via Cloudflare's global edge network. Your phone can be on 5G while your PC is on an isolated corporate intranet—sync works seamlessly.
-- **Zero Personal Footprint:** No accounts, phone numbers, or passwords. Pair devices with a transient 4-digit code (e.g., `0509`).
-- **Safe Disconnect & Memory Wipe:** Hit **Disconnect** when done to instantly tear down edge stream listeners and purge on-screen message history, leaving zero trace behind.
+- **Zero Installation & Zero Footprint:** No client software, no background daemon, no registry or network configuration changes. Open a browser tab, connect, and close it when you are done.
+- **Cross-Network Cloud Relay (Beyond Local LAN Limitations):** A Cloudflare edge relay removes the "same Wi-Fi" requirement. A phone on cellular and a desktop on broadband stay in sync with sub-second latency.
+- **Zero Account Binding & Zero Auth:** No phone number, email, or third-party account is collected. A temporary 4-digit room code is enough to connect.
+- **Safe Disconnect & Ephemeral In-Memory Streaming:** One tap disconnects, closes the stream, and clears the on-screen feed to protect what is displayed.
+- **Zero Persistence:** Payloads stream only through Durable Object runtime memory—never written to disk or a database.
 
 ---
 
@@ -43,7 +42,7 @@ Unlike traditional sync tools that assume an open home network with full system 
 - 📎 **Images, Screenshots & Light Files:** Paste a screenshot, drop a file, or attach one from the picker (≤ 8MB). Payloads travel as data URLs through your own relay.
 - 🔐 **Bring Your Own Backend (BYOB):** The relay runs inside your own Cloudflare account. There is no shared public relay and no third-party backend, so the traffic stays on infrastructure you control.
 - 🔌 **Flexible Dual-Client Model:**
-  - **Web Console ([clipsync-web.pages.dev](https://clipsync-web.pages.dev)):** Ideal for guest terminals, corporate PCs, and mobile browsers without setup.
+  - **Web Console ([clipsync-web.pages.dev](https://clipsync-web.pages.dev)):** Ideal for temporary terminals, shared desktops, and mobile browsers without setup.
   - **Chrome MV3 Extension:** Seamless background sync directly into the system clipboard on your dedicated development machine.
 
 ---
@@ -158,3 +157,13 @@ Take note of your deployed Worker URL: `https://clipsync-relay.<subdomain>.worke
 ## 📄 License
 
 Distributed under the [MIT License](LICENSE).
+
+---
+
+### ⚖️ Disclaimer
+
+ClipSync is a lightweight, open-source utility for cross-device clipboard sharing and the transfer of code snippets or temporary test data between devices.
+
+1. Users must comply with their organization's network usage policies and information security guidelines.
+2. Do not use this tool to transmit trade secrets, sensitive personal information, or any data protected by laws and regulations.
+3. The project authors assume no liability for any direct or indirect consequences resulting from non-compliant or improper use.
