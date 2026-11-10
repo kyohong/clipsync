@@ -1,75 +1,133 @@
-# ClipSync ⚡
+# ⚡ ClipSync
 
-> Ultra-low latency, cross-device clipboard synchronization powered by Cloudflare Workers (Durable Objects) and Chrome MV3.
+> **Zero-Install, Ephemeral Cross-Device Clipboard Relay**<br>
+> Instant bidirectional clipboard sync between mobile and desktop across incompatible ecosystems. Designed for restricted corporate workstations and multi-device setups—no admin permissions, no chat apps, and zero persistent storage.
 
-English | [中文说明](README_zh.md)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kyohong/clipsync/tree/main/worker)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Web%20App%20%7C%20Chrome%20MV3-orange)](#)
+[![Cloudflare](https://img.shields.io/badge/Backend-Cloudflare%20Workers%20%2B%20DO-F38020?logo=cloudflare)](https://workers.cloudflare.com/)
 
-## ✨ Highlights
-
-- **Zero-Latency Feel**: Broadcasts via Cloudflare Durable Objects memory relay directly to your PC.
-- **Silent System Paste**: Chrome Extension writes silently to OS clipboard via Offscreen Documents. No tab switching needed—just press `Ctrl+V` (or `Cmd+V`).
-- **No-Extension Friendly**: Web client includes a live feed for guest PCs; click once to copy.
-- **Cross-Platform Sending**: Send instantly from iOS (Back Tap shortcut), Android (Quick Settings / HTTP Shortcuts), or Web.
-- **No Persistence**: Ephemeral in-memory routing; messages are never written to storage.
+[**简体中文文档**](README_zh.md) | [**Live Web Console**](https://clipsync-web.pages.dev)
 
 ---
 
-## 🚀 Quick Start
+## 💡 Why ClipSync?
 
-### 1. Deploy Cloudflare Worker (Backend)
+When troubleshooting on a PC, taking a photo of compiler errors with your mobile AI and having it draft a solution is effortless. But getting generated code, sensitive API tokens, or commands back onto your work machine is notoriously broken:
+
+- **Ecosystem Barriers:** Apple Universal Clipboard only works between Apple devices. iPhone + Windows or Android + Mac users are completely locked out.
+- **Enterprise Restrictions & Isolation:** Most LAN sync utilities (e.g., LocalSend, KDE Connect) fail on corporate Wi-Fi due to AP/Client Isolation policies, or require admin credentials to install.
+- **Privacy & Security Hazards:** Pasting sensitive API keys, cloud credentials, or proprietary snippets into personal chat apps (WeChat Transfer, WhatsApp, Slack) leaves permanent audit logs on third-party servers and risks corporate compliance flags.
+
+**ClipSync resolves this through a lightweight, web-first in-memory relay.**
+
+---
+
+## 🏢 Built for Restricted Workstations
+
+Unlike traditional sync tools that assume an open home network with full system privileges, ClipSync is built from the ground up for locked-down enterprise machines:
+
+- **Zero Install & Zero Admin Rights:** Operates 100% inside any standard browser via [clipsync-web.pages.dev](https://clipsync-web.pages.dev). No `.exe`, no elevated privileges, and no IT approval tickets.
+- **Bypasses Network Isolation:** Connects via Cloudflare's global edge network. Your phone can be on 5G while your PC is on an isolated corporate intranet—sync works seamlessly.
+- **Zero Personal Footprint:** No accounts, phone numbers, or passwords. Pair devices with a transient 4-digit code (e.g., `0509`).
+- **Safe Disconnect & Memory Wipe:** Hit **Disconnect** when done to instantly tear down edge stream listeners and purge on-screen message history, leaving zero trace behind.
+
+---
+
+## ✨ Key Highlights
+
+- 🔒 **Zero Persistence (Memory-Only Pipeline):** Built on Cloudflare Workers and **Durable Objects**. Text streams strictly through transient in-memory channels—nothing is persisted to databases or object storage, and payloads are never logged.
+- ⚡ **Real-Time Sub-Second Handoff:** Instant streaming via Server-Sent Events (SSE). Hit send on your phone, and it reflects on your PC screen immediately.
+- 🆓 **100% Free Edge Compute:** Fully operates within Cloudflare's free tier (100,000 requests/day). Zero infrastructure fees for personal and small-team use.
+- 🔌 **Flexible Dual-Client Model:**
+  - **Web Console ([clipsync-web.pages.dev](https://clipsync-web.pages.dev)):** Ideal for guest terminals, corporate PCs, and mobile browsers without setup.
+  - **Chrome MV3 Extension:** Seamless background sync directly into the system clipboard on your dedicated development machine.
+
+---
+
+## 🏗️ Architecture
+
+```text
+               +--------------------------------------------+
+               |          Sender (e.g., iPhone)             |
+               |   [ Read Clipboard / Manual Input Area ]   |
+               +---------------------+----------------------+
+                                     |
+                                HTTP POST /send
+                                     |
+                                     v
+                 +---------------------------------------+
+                 |    Cloudflare Workers + Edge DO       |
+                 |      (Durable Object Room Hub)        |
+                 |   * Pure In-Memory Broadcast Pipeline |
+                 |   * No DB Writes | No Data Retention  |
+                 +-------------------+-------------------+
+                                     |
+                          SSE Broadcast (one-way stream)
+                                     |
+               +---------------------+----------------------+
+               |                                            |
+               v                                            v
++-------------------------------+             +-------------------------------+
+|     Chrome MV3 Extension      |             |       Web Live Console        |
+|  (Offscreen Clipboard Bridge) |             |  (For Corporate / Guest PCs)  |
+|  ==> Auto System Clipboard    |             |  ==> Visual Stream + 1-Tap    |
++-------------------------------+             +-------------------------------+
+```
+
+Every connected desktop holds one long-lived SSE stream to its room. `POST /send` writes the payload to each stream in memory and returns immediately; the relay keeps no copy.
+
+---
+
+## 🚀 One-Click Deployment
+
+Deploy your own private ClipSync relay backend to Cloudflare in seconds using the **Deploy to Cloudflare** button above (it clones `worker/` into your account and runs `wrangler deploy`), or use the CLI:
 
 ```bash
+# 1. Clone repository
 git clone https://github.com/kyohong/clipsync.git
 cd clipsync/worker
+
+# 2. Login to Cloudflare
 npx wrangler login
+
+# 3. Deploy Durable Object worker
 npx wrangler deploy
 ```
 
-*Take note of your deployed Worker URL: `https://clipsync-relay.<subdomain>.workers.dev`.*
+Take note of your deployed Worker URL: `https://clipsync-relay.<subdomain>.workers.dev`.
 
-> **Notice for Mainland China**: Due to DNS restrictions on `*.workers.dev`, please bind a **Custom Domain** to the Worker under Cloudflare Dashboard ➔ Settings ➔ Triggers ➔ Custom Domains for stable access.
+> **Hosting your own web console?** Set `DEFAULT_WORKER_URL` at the top of `web/index.html` to your Worker URL so visitors can connect without opening Settings. Leave it empty to require a manual value.
 
-### 2. Client Setup
+---
 
-#### Primary PC (Chrome Extension)
+## 💻 Client Setup
 
-1. Navigate to `chrome://extensions/` in Chrome.
-2. Enable **Developer mode** (top right).
-3. Click **Load unpacked** and select the `extension/` directory.
-4. Click the extension icon, enter your Worker URL and your chosen pairing code (e.g. `0000`).
+### 1. Web Console (Zero-Install)
 
-#### Guest / Unmanaged PC (Web Feed)
+1. Open <https://clipsync-web.pages.dev> on any device.
+2. Click the ⚙️ (Settings) icon in the top header to enter your self-hosted Worker URL (or leave it blank to use the deployment's default node).
+3. Enter your 4-digit Room Code and click **Connect**.
+4. Open the same URL and room on your mobile browser (or share `?room=0509`).
 
-Serve `web/index.html` over HTTPS (or `localhost`) and open it, then input your Worker URL and pairing code. Messages will pop up live.
+### 2. Chrome MV3 Extension
 
-> The Clipboard API only works in a secure context, so opening the file via `file://` will block the one-click copy/read buttons.
-
-#### iOS Quick Setup (Back Tap)
-
-1. Open iOS **Shortcuts** app ➔ Create new shortcut.
-2. Add **Get Clipboard** action.
-3. Add **Get Contents of URL** action:
-   - URL: `https://<your-worker-domain>/send?room=<your_code>`
-   - Method: `POST`
-   - Request Body: `JSON`, Key `text` ➔ bind to Clipboard.
-4. Go to **Settings** ➔ **Accessibility** ➔ **Touch** ➔ **Back Tap** ➔ assign this shortcut to Double Tap.
-
-#### Android Quick Setup
-
-- **Option 1**: Open the Web Client in Chrome and select **Add to Home Screen** for a PWA experience.
-- **Option 2**: Use the free open-source app **HTTP Shortcuts**. Create a POST shortcut pointing to your `/send` endpoint, set the payload to `{"text": "{clipboard}"}`, and add it to your Quick Settings notification tiles.
+1. Open `chrome://extensions/` in Chrome or Edge.
+2. Toggle on **Developer mode** in the upper-right corner.
+3. Click **Load unpacked** and select the `extension/` folder from this repo.
+4. Open the extension popup, configure your Worker URL, and pair using your room code.
 
 ---
 
 ## 🔐 Security Notes
 
-- The pairing code is the only access control: anyone who knows (or guesses) the 4-digit code can send to and read from that room. Use a non-obvious code and treat the room as public.
+- The pairing code is the only access control. Anyone who knows (or guesses) the 4-digit code can send to and read from that room—treat it as public and pick a non-obvious code.
 - There is no end-to-end encryption. Text is relayed over TLS and is readable by the relay (Cloudflare) while in flight.
-- The relay keeps no message history: sessions live in Durable Object memory and each payload is forwarded once.
-- Do not send passwords, API keys, or other secrets.
+- Do not send passwords, API keys, or other long-lived secrets.
 
 ---
 
 ## 📄 License
 
-Released under the [MIT License](LICENSE).
+Distributed under the [MIT License](LICENSE).
