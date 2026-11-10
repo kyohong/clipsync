@@ -40,9 +40,36 @@ Unlike traditional sync tools that assume an open home network with full system 
 - 🔒 **Zero Persistence (Memory-Only Pipeline):** Built on Cloudflare Workers and **Durable Objects**. Text streams strictly through transient in-memory channels—nothing is persisted to databases or object storage, and payloads are never logged.
 - ⚡ **Real-Time Sub-Second Handoff:** Instant streaming via Server-Sent Events (SSE). Hit send on your phone, and it reflects on your PC screen immediately.
 - 🆓 **100% Free Edge Compute:** Fully operates within Cloudflare's free tier (100,000 requests/day). Zero infrastructure fees for personal and small-team use.
+- 📎 **Images, Screenshots & Light Files:** Paste a screenshot, drop a file, or attach one from the picker (≤ 8MB). Payloads travel as data URLs through your own relay.
+- 🔐 **Bring Your Own Backend (BYOB):** The relay runs inside your own Cloudflare account. There is no shared public relay and no third-party backend, so the traffic stays on infrastructure you control.
 - 🔌 **Flexible Dual-Client Model:**
   - **Web Console ([clipsync-web.pages.dev](https://clipsync-web.pages.dev)):** Ideal for guest terminals, corporate PCs, and mobile browsers without setup.
   - **Chrome MV3 Extension:** Seamless background sync directly into the system clipboard on your dedicated development machine.
+
+---
+
+## 🚀 3-Step Self-Hosted Relay (Free Forever)
+
+ClipSync separates the static frontend from the relay. Use the public console at [clipsync-web.pages.dev](https://clipsync-web.pages.dev) and point it at a relay you own — deploying one takes about a minute:
+
+1. **Clone the repo and enter the Worker folder**
+
+   ```bash
+   git clone https://github.com/kyohong/clipsync.git
+   cd clipsync/worker
+   ```
+
+2. **Deploy to your own Cloudflare account (100,000 free requests/day)**
+
+   ```bash
+   npx wrangler deploy
+   ```
+
+   *The first run opens a browser to authorize Cloudflare. When it finishes, the terminal prints your own relay URL, e.g. `https://clipsync-relay.<your-subdomain>.workers.dev`.*
+
+3. **Point the web console at your relay**
+
+   Open [clipsync-web.pages.dev](https://clipsync-web.pages.dev), click **⚙️ Settings** in the top-right, paste the Worker URL, save, then enter a 4-digit room code and hit **Connect**.
 
 ---
 

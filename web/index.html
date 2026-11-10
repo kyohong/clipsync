@@ -631,7 +631,7 @@
       statusConnected: "已连接",
       needConnect: "请先连接房间",
       roomInvalid: "请输入 4 位数字配对码",
-      needWorker: "首次使用，请先在设置中填入您的 Worker 中继地址",
+      needWorker: "首次使用，请先在设置中填入您的 Cloudflare Worker 中继地址",
       connectFailed: "连接失败，请检查 Worker 地址和配对码",
       disconnectedToast: "已断开连接，接收记录已清空",
       settingsSaved: "设置已保存",
@@ -713,7 +713,7 @@
       statusConnected: "Connected",
       needConnect: "Connect to a room first",
       roomInvalid: "Enter a 4-digit room code",
-      needWorker: "Please configure your Worker relay URL in Settings first",
+      needWorker: "Please configure your Cloudflare Worker relay URL in Settings first",
       connectFailed: "Connection failed — check the Worker URL and room code",
       disconnectedToast: "Disconnected and cleared the live feed",
       settingsSaved: "Settings saved",
@@ -887,8 +887,7 @@
     const room = elRoom.value.trim();
 
     if (!workerUrl) {
-      openSettings();
-      showToast(t('needWorker'));
+      promptForRelay();
       return;
     }
     if (!/^\d{4}$/.test(room)) {
@@ -1248,6 +1247,12 @@
     elSettingsModal.classList.add('active');
   }
 
+  function promptForRelay() {
+    openSettings();
+    showToast(t('needWorker'));
+    elWorker.focus();
+  }
+
   function closeSettings() {
     elSettingsModal.classList.remove('active');
   }
@@ -1477,8 +1482,7 @@
   if (presetRoom && getWorkerUrl()) {
     connect();
   } else if (presetRoom) {
-    openSettings();
-    showToast(t('needWorker'));
+    promptForRelay();
   } else {
     updateUI();
   }

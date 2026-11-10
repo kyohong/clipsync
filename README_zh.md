@@ -40,9 +40,36 @@ ClipSync 与传统快传工具的最大区别，在于它**完全不需要依赖
 - 🔒 **纯内存中转，零持久化：** 基于 Cloudflare Workers 与 **Durable Objects** 架构构建，消息仅通过临时内存管道广播，**不写入数据库、不落盘、不记录消息内容**。
 - ⚡ **毫秒级实时推送：** 采用 Server-Sent Events (SSE) 持续流转，手机端点击一键读取发送，电脑端瞬时弹出。
 - 🆓 **白嫖边缘算力，永久免费：** 适配 Cloudflare Workers 免费配额（每天 100,000 次请求），个人与小团队日常使用零费用。
+- 📎 **图片、截图与轻量文件：** 支持粘贴截图、拖拽或选择文件（单个 ≤ 8MB），以 DataURL 经你自己的中继转发。
+- 🔐 **自带后端（BYOB）：** 中继部署在你自己的 Cloudflare 账号下，不存在共享公共中继，也没有任何第三方后端，流量始终落在你可控的基础设施上。
 - 🔌 **灵活双端架构：**
   - **免安装 Web 主控台 ([clipsync-web.pages.dev](https://clipsync-web.pages.dev))：** 任何受限工作机、临时演示设备或手机浏览器打开即用。
   - **Chrome MV3 扩展：** 个人主力机可加载轻量插件，通过 Offscreen Document 自动写入系统剪贴板。
+
+---
+
+## 🚀 3 步搭建专属中继服务（永久免费）
+
+本项目采用「前端托管 + 私有中继」分离设计。你可以直接使用官方 Web 控制台 [clipsync-web.pages.dev](https://clipsync-web.pages.dev)，只需 1 分钟即可部署自己的中继节点：
+
+1. **克隆项目并进入 Worker 目录**
+
+   ```bash
+   git clone https://github.com/kyohong/clipsync.git
+   cd clipsync/worker
+   ```
+
+2. **一键部署到你的 Cloudflare（每天 10 万次免费额度）**
+
+   ```bash
+   npx wrangler deploy
+   ```
+
+   *首次运行会唤起浏览器授权登录 Cloudflare；部署完成后终端会输出类似 `https://clipsync-relay.<你的前缀>.workers.dev` 的专属链接。*
+
+3. **填入网页控制台**
+
+   打开 [ClipSync Web 控制台](https://clipsync-web.pages.dev)，点击右上角 **⚙️ 设置**，粘贴上述 Worker 链接并保存，随后输入 4 位房间码并点击 **连接信道**。
 
 ---
 
